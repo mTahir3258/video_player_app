@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "654895990962",
+    "project_id": "cuboplayer-44081",
+    "storage_bucket": "cuboplayer-44081.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654895990962:android:b182f35a4d426367c9a1ab",
+        "android_client_info": {
+          "package_name": "com.example.player_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDXeqABfvJBNMODWAQ8UKRVR0zFSUH0o2w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
