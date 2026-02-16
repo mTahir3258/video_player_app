@@ -33,7 +33,7 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
   @override
   void initState() {
     super.initState();
-    videos = widget.playlist.videos;
+    videos = List<SystemVideo>.from(widget.playlist.videos);
   }
 
   @override
@@ -83,26 +83,31 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
       );
 
       if (confirm != true) return;
+      //create new list copy
+
+      final updatedVideos = List<SystemVideo>.from(videos);
+
+      //remove only tapped video
+      updatedVideos.removeAt(index);
 
       if (confirm == true) {
         setState(() {
-          //create new list copy
-          final updatedVideos = List<SystemVideo>.from(videos);
-
-          //remove only tapped video
-          updatedVideos.removeAt(index);
-
           //update local Ui list
           videos = updatedVideos;
-
-          // videos.removeAt(index); //remove from the local playlist
-
-          //update hive playlist
-          widget.playlist.videos = updatedVideos;
         });
 
+        //update hive playlist
+        widget.playlist.videos = updatedVideos;
+
+        //save hive changes
         await widget.playlist.save();
 
+        //check if playlist is empty
+        if (updatedVideos.isEmpty)
+
+          //delete playlist from hive
+          await widget.playlist.delete();
+          
         playlistNotifier.loadPlaylists();
 
         ScaffoldMessenger.of(context).showSnackBar(
