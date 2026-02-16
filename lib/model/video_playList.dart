@@ -10,7 +10,7 @@ class VideoPlaylist  extends HiveObject{
   final String name;
 
   @HiveField(1)
-  final List<SystemVideo> videos;
+   List<SystemVideo> videos;
 
   VideoPlaylist({
     required this.name,

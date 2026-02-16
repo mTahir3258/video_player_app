@@ -86,12 +86,24 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
 
       if (confirm == true) {
         setState(() {
-          videos.removeAt(index); //remove from the local playlist
-          widget.playlist.videos.removeAt(index);
+          //create new list copy
+          final updatedVideos = List<SystemVideo>.from(videos);
+
+          //remove only tapped video
+          updatedVideos.removeAt(index);
+
+          //update local Ui list
+          videos = updatedVideos;
+
+          // videos.removeAt(index); //remove from the local playlist
+
+          //update hive playlist
+          widget.playlist.videos = updatedVideos;
         });
 
-
         await widget.playlist.save();
+
+        playlistNotifier.loadPlaylists();
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -164,20 +176,25 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
               TextButton(
                 onPressed: () async {
                   setState(() {
-                    videos[index] = SystemVideo(
+                    final updatedVideos = List<SystemVideo>.from(videos);
+
+                    updatedVideos[index] = SystemVideo(
                       path: video.path,
                       name: controller.text.trim(),
                       duration: video.duration,
                       assetId: video.assetId,
                     );
 
-                    //update playlist in Hive
-                    widget.playlist.videos[index] = videos[index];
-                  });
+                    videos = updatedVideos;
 
+                    //update playlist in Hive
+                    widget.playlist.videos = updatedVideos;
+                  });
 
                   //save the playlist
                   await widget.playlist.save();
+
+                  playlistNotifier.loadPlaylists();
 
                   Navigator.pop(context);
 

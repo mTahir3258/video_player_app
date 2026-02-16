@@ -18,6 +18,11 @@ class PlayListScreen extends StatefulWidget {
 class _PlayListScreenState extends State<PlayListScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  @override
+  void initState() {
+    super.initState();
+  }
+
   void _createPlaylist() {
     final TextEditingController nameController = TextEditingController();
     final List<SystemVideo> selectedVideos = [];
@@ -136,7 +141,6 @@ class _PlayListScreenState extends State<PlayListScreen> {
                                 content: Text('PlayList Created'),
                                 backgroundColor: Color(0xFF22C55E),
                               ));
-
                             },
                             child: const Text(
                               "Create",
@@ -162,7 +166,7 @@ class _PlayListScreenState extends State<PlayListScreen> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
@@ -247,7 +251,6 @@ class _PlayListScreenState extends State<PlayListScreen> {
                   },
                 ),
               );
-           
             },
           );
         },
@@ -294,5 +297,4 @@ class _PlayListScreenState extends State<PlayListScreen> {
       ),
     );
   }
-
 }
