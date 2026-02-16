@@ -1,22 +1,28 @@
 import 'package:hive/hive.dart';
 import 'package:photo_manager/photo_manager.dart';
+part 'system_video_model.g.dart';
 
+@HiveType(typeId: 1)
+class SystemVideo extends HiveObject {
+  @HiveField(0)
+  String path;
 
-@HiveType(typeId: 2)
-class SystemVideo  extends HiveObject{
-  @HiveType(typeId: 0)
-  final String path;
-  @HiveType(typeId: 1)
-  final String name;
+  @HiveField(1)
+  String name;
+
   @HiveField(2)
-  final Duration? duration;
-  @HiveField(3)
-  final AssetEntity asset;
+  int durationMillis; // store duration in milliseconds
 
+  @HiveField(3)
+  String? assetId;
+
+  // ✅ Add a default constructor for Hive
   SystemVideo({
-    required this.path,
-    required this.name,
-    this.duration,
-    required this.asset,
-  });
+    this.path = '',
+    this.name = '',
+    Duration? duration,
+    this.assetId,
+  }) : durationMillis = duration?.inMilliseconds ?? 0;
+
+  Duration get duration => Duration(milliseconds: durationMillis);
 }

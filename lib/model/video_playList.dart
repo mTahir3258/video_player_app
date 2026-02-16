@@ -1,9 +1,11 @@
 import 'package:hive/hive.dart';
 import 'package:player_app/model/system_video_model.dart';
+part 'video_playList.g.dart';
 
 
-@HiveType(typeId: 1)
+@HiveType(typeId: 0)
 class VideoPlaylist  extends HiveObject{
+  
   @HiveField(0)
   final String name;
 

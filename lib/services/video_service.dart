@@ -29,7 +29,7 @@ class SystemVideoService {
                 path: file.path,
                 name: file.path.split('/').last,
                 duration: asset.videoDuration, // ✅ FIXED
-                asset: asset,
+                assetId: asset.id,
               ),
             );
           }
@@ -68,7 +68,7 @@ class SystemVideoService {
                 path: file.path,
                 name: file.path.split('/').last,
                 duration: asset.videoDuration,
-                asset: asset,
+                assetId: asset.id ,
               ),
             );
           }

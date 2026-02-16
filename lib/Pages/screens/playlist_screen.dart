@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:hive_flutter/adapters.dart';
 import 'package:player_app/Pages/screens/playlistcreatedScreen.dart';
 import 'package:player_app/model/system_video_model.dart';
 import 'package:player_app/model/video_playList.dart';
@@ -108,29 +110,33 @@ class _PlayListScreenState extends State<PlayListScreen> {
                                 backgroundColor: Color(0xFF1ED760),
                                 shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(25))),
-                            onPressed: () {
+                            onPressed: () async {
                               if (!_formKey.currentState!.validate()) return;
                               if (selectedVideos.isEmpty) return;
-
-                              playlistNotifier.addPlaylist(
-                                VideoPlaylist(
-                                  name: nameController.text.trim(),
-                                  videos: List.from(selectedVideos),
-                                ),
-                              );
 
                               //create playlist object
                               final playlist = VideoPlaylist(
                                   name: nameController.text.trim(),
+                                  // videos: List.from(selectedVideos)
                                   videos: List.from(selectedVideos));
 
-                              // // add playlist into the Hive
-                              // final box = Hive.box<VideoPlaylist>(
-                              //   'playlist-hive',
-                              // );
-                              // box.add(playlist);
+                              // add playlist into the Hive
+                              final box = Hive.box<VideoPlaylist>(
+                                'playlistBox',
+                              );
 
-                              Navigator.pop(modelContext);
+                              playlistNotifier.addPlaylist(playlist);
+
+                              // await box.add(playlist);
+
+                              Navigator.of(context).pop();
+
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(
+                                content: Text('PlayList Created'),
+                                backgroundColor: Color(0xFF22C55E),
+                              ));
+
                             },
                             child: const Text(
                               "Create",
@@ -150,13 +156,13 @@ class _PlayListScreenState extends State<PlayListScreen> {
         );
       },
     );
-  
   }
 
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
@@ -197,9 +203,9 @@ class _PlayListScreenState extends State<PlayListScreen> {
       ),
 
       // 🔥 THIS IS IMPORTANT
-      body: ValueListenableBuilder<List<VideoPlaylist>>(
+      body: ValueListenableBuilder(
         valueListenable: playlistNotifier,
-        builder: (context, playlists, _) {
+        builder: (context, List<VideoPlaylist> playlists, _) {
           if (playlists.isEmpty) {
             return _buildEmptyState();
           }
@@ -241,6 +247,7 @@ class _PlayListScreenState extends State<PlayListScreen> {
                   },
                 ),
               );
+           
             },
           );
         },
@@ -287,4 +294,5 @@ class _PlayListScreenState extends State<PlayListScreen> {
       ),
     );
   }
+
 }

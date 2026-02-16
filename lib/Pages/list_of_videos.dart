@@ -92,7 +92,7 @@ class _ListOfVideosState extends State<ListOfVideos> {
     );
 
     if (confirm == true) {
-      final bool success = await SystemVideoService.deleteVideo(video.asset);
+      final bool success = await SystemVideoService.deleteVideo(video.assetId as AssetEntity);
 
       if (success) {
         setState(() {
@@ -176,7 +176,7 @@ class _ListOfVideosState extends State<ListOfVideos> {
                     path: video.path,
                     name: controller.text.trim(),
                     duration: video.duration,
-                    asset: video.asset,
+                    assetId: video.assetId,
                   );
                 });
 

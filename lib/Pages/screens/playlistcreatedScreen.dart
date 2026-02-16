@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:photo_manager/src/types/entity.dart';
 import 'package:player_app/Pages/detailed_videos.dart';
 import 'package:player_app/model/system_video_model.dart';
 import 'package:player_app/model/video_playList.dart';
 import 'package:player_app/services/video_service.dart';
+import 'package:player_app/state/playlist_notifier.dart';
 
 class Playlistcreatedscreen extends StatefulWidget {
   final VideoPlaylist playlist;
@@ -19,12 +21,12 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
   List<SystemVideo> videos = [];
 
   void savePlaylist(VideoPlaylist playlist) async {
-    final box = Hive.box<VideoPlaylist>('playlist');
+    final box = Hive.box<VideoPlaylist>('playlistBox');
     await box.add(playlist);
   }
 
   void getPlaylist() async {
-    final box = Hive.box<VideoPlaylist>('playlist');
+    final box = Hive.box<VideoPlaylist>('playlistBox');
     await box.values.toList();
   }
 
@@ -80,26 +82,28 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
         ),
       );
 
+      if (confirm != true) return;
+
       if (confirm == true) {
-        final bool success = await SystemVideoService.deleteVideo(video.asset);
+        setState(() {
+          videos.removeAt(index); //remove from the local playlist
+          widget.playlist.videos.removeAt(index);
+        });
 
-        if (success) {
-          setState(() {
-            videos.removeAt(index);
-          });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                backgroundColor: Color(0xFF22C55E),
-                content: Text("Video deleted successfully")),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                backgroundColor: Colors.red,
-                content: Text("Failed to delete video")),
-          );
-        }
+        await widget.playlist.save();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              backgroundColor: Color(0xFF22C55E),
+              content: Text("Video deleted successfully")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              backgroundColor: Colors.red,
+              content: Text("Failed to delete video")),
+        );
       }
     }
 
@@ -158,15 +162,22 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
                 ),
               ),
               TextButton(
-                onPressed: () {
+                onPressed: () async {
                   setState(() {
                     videos[index] = SystemVideo(
                       path: video.path,
                       name: controller.text.trim(),
                       duration: video.duration,
-                      asset: video.asset,
+                      assetId: video.assetId,
                     );
+
+                    //update playlist in Hive
+                    widget.playlist.videos[index] = videos[index];
                   });
+
+
+                  //save the playlist
+                  await widget.playlist.save();
 
                   Navigator.pop(context);
 
@@ -283,9 +294,9 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
         ),
       ),
       body: ListView.builder(
-        itemCount: widget.playlist.videos.length,
+        itemCount: videos.length,
         itemBuilder: (context, index) {
-          final video = widget.playlist.videos[index];
+          final video = videos[index];
 
           return Container(
             margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
