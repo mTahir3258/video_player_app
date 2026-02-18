@@ -3,7 +3,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:player_app/Pages/bottom_nav_screens/bottom_nav_home.dart';
+import 'package:player_app/Pages/videos_Folder.dart';
 import 'package:player_app/core/constants/app_colors.dart';
+import 'package:player_app/google_ads_files/ads_manager.dart';
 import 'package:story_view/story_view.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -17,6 +19,7 @@ class PageViewTask extends StatefulWidget {
 class _PageViewTaskState extends State<PageViewTask> {
   final storyController = StoryController();
   final supabase = Supabase.instance.client;
+
   List<String> imageURls = [];
   bool isLoading = true;
 
@@ -63,33 +66,43 @@ class _PageViewTaskState extends State<PageViewTask> {
       },
     ).toList();
 
-    return Scaffold(
-      backgroundColor: AppColors.blackColor,
-      body: isLoading
-          ? Center(child: CircularProgressIndicator(color:Color(0xFF22C55E) ,))
-          : SafeArea(
-              child: Column(
-                children: [
-                  Expanded(
-                    child: StoryView(
-                      storyItems: storyItem,
-                      controller: storyController,
-                      onComplete: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => BottomNavHome()));
-                      },
-                      onVerticalSwipeComplete: (direction) {
-                        if (direction == Direction.down) {
-                          Navigator.pop(context);
-                        }
-                      },
+    return WillPopScope(
+      onWillPop: () async {
+        AdsManager.handelBackPress();
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.blackColor,
+        body: isLoading
+            ? Center(
+                child: CircularProgressIndicator(
+                color: Color(0xFF22C55E),
+              ))
+            : SafeArea(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: StoryView(
+                        storyItems: storyItem,
+                        controller: storyController,
+                        onComplete: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  // builder: (context) => BottomNavHome()));
+                                  builder: (context) => VideosFolder()));
+                        },
+                        onVerticalSwipeComplete: (direction) {
+                          if (direction == Direction.down) {
+                            Navigator.pop(context);
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 }

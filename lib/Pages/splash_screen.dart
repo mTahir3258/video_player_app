@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:player_app/Pages/bottom_nav_screens/bottom_nav_home.dart';
 import 'package:player_app/Pages/screens/page_view_task.dart';

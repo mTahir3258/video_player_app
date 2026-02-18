@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:player_app/Pages/detailed_videos.dart';
+import 'package:player_app/google_ads_files/ads_helper.dart';
+import 'package:player_app/google_ads_files/ads_manager.dart';
 import 'package:player_app/services/video_service.dart';
 import 'package:player_app/model/system_video_model.dart';
 
@@ -27,11 +30,44 @@ class _ListOfVideosState extends State<ListOfVideos> {
   // Loading indicator flag
   bool loading = true;
 
+  //Interstitail Ads
+  InterstitialAd? _interstitialAd;
+
+  //Banner ads
+  static BannerAd? _bannerAd;
+
   @override
   void initState() {
     super.initState();
+    _bannerAd = AdsHelper.loadBannerAds(onAdLoaded: () {
+      setState(() {});
+    });
+
+    // fullScreenAds();
     loadVideos();
   }
+
+  // //Google Ads Full Screem
+  // void fullScreenAds() {
+  //   AdsHelper.loadInterstitialAds(
+  //     onLoaded: (ads) {
+  //       _interstitialAd = ads;
+  //       _interstitialAd?.show();
+  //       setState(() {});
+  //     },
+  //     OnError: (Error) {
+  //       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  //           backgroundColor: Colors.red,
+  //           content: Text(
+  //             'Full Screen ads not loaded',
+  //             style: TextStyle(
+  //                 fontSize: 15.0,
+  //                 color: Colors.black,
+  //                 fontWeight: FontWeight.w500),
+  //           )));
+  //     },
+  //   );
+  // }
 
   // Load videos from system
   Future<void> loadVideos() async {
@@ -60,7 +96,6 @@ class _ListOfVideosState extends State<ListOfVideos> {
   // Delete video from system
   void _deleteVideo(SystemVideo video, int index) async {
     final bool? confirm = await showDialog<bool>(
-      
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Color(0xFF0D1117),
@@ -92,7 +127,8 @@ class _ListOfVideosState extends State<ListOfVideos> {
     );
 
     if (confirm == true) {
-      final bool success = await SystemVideoService.deleteVideo(video.assetId as AssetEntity);
+      final bool success =
+          await SystemVideoService.deleteVideo(video.assetId as AssetEntity);
 
       if (success) {
         setState(() {
@@ -100,17 +136,15 @@ class _ListOfVideosState extends State<ListOfVideos> {
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-        
           const SnackBar(
-            backgroundColor: Color(0xFF22C55E),
-            content: Text("Video deleted successfully")),
+              backgroundColor: Color(0xFF22C55E),
+              content: Text("Video deleted successfully")),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          
           const SnackBar(
-            backgroundColor: Colors.red,
-            content: Text("Failed to delete video")),
+              backgroundColor: Colors.red,
+              content: Text("Failed to delete video")),
         );
       }
     }
@@ -184,10 +218,10 @@ class _ListOfVideosState extends State<ListOfVideos> {
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    backgroundColor: Color(0xFF22C55E),
+                      backgroundColor: Color(0xFF22C55E),
                       content: Text(
-                    "Video renamed",
-                  )),
+                        "Video renamed",
+                      )),
                 );
               },
               child: const Text(
@@ -289,118 +323,136 @@ class _ListOfVideosState extends State<ListOfVideos> {
     final textFontSize = width * 0.045;
     final iconSize = width * 0.065;
 
-    return Scaffold(
-      backgroundColor: Color(0xFF0D1117),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: false,
-        title: Text(
-          widget.folderName,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+    return WillPopScope(
+      onWillPop: () async {
+        AdsManager.handelBackPress();
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xFF0D1117),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: false,
+          title: Text(
+            widget.folderName,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new,
+              color: Colors.white,
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context),
           ),
         ),
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios_new,
-            color: Colors.white,
-            size: 20,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: loading
-          ? const Center(
-              child: CircularProgressIndicator(
-              color: Color(0xFF22C55E),
-            ))
-          : videos.isEmpty
-              ? _buildNoVideosFound()
-              : ListView.builder(
-                  itemCount: videos.length,
-                  itemBuilder: (context, index) {
-                    final video = videos[index];
+        body: loading
+            ? const Center(
+                child: CircularProgressIndicator(
+                color: Color(0xFF22C55E),
+              ))
+            : videos.isEmpty
+                ? _buildNoVideosFound()
+                : Column(
+                    children: [
+                      if (_bannerAd != null)
+                        Container(
+                          height: _bannerAd!.size.height.toDouble(),
+                          width: _bannerAd!.size.width.toDouble(),
+                          child: AdWidget(ad: _bannerAd!),
+                        ),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: videos.length,
+                          itemBuilder: (context, index) {
+                            final video = videos[index];
 
-                    return Container(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 10.0),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF161B22),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(12),
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => DetailedVideos(
-                                      videoPath: video.path,
-                                      videoList: video.name)));
-                        },
-                        leading: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              width: 80,
-                              height: 60,
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 10.0),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0D1117),
-                                borderRadius: BorderRadius.circular(8),
+                                color: const Color(0xFF161B22),
+                                borderRadius: BorderRadius.circular(15),
                               ),
-                              child: const Icon(
-                                Icons.movie_outlined,
-                                color: Colors.white24,
-                              ),
-                            ),
-                            const Icon(
-                              Icons.play_arrow_rounded,
-                              color: Colors.white,
-                              size: 30,
-                            )
-                          ],
-                        ),
-                        title: Text(
-                          video.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text(
-                            "${video.duration} • Video", // You can format size here if available
-                            style: const TextStyle(
-                                color: Colors.white54, fontSize: 12),
-                          ),
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.more_vert,
-                              color: Color(0xFF22C55E)),
-                          onPressed: () {
-                            // Call your bottom sheet or options logic here
-                            showVideoOptionsBottomSheet(
-                              context: context,
-                              videoName: getVideoName(videos[index]),
-                              onDelete: () =>
-                                  _deleteVideo(videos[index], index),
-                              onRename: () => renameVideo(
-                                video: videos[index],
-                                index: index,
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(12),
+                                onTap: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) => DetailedVideos(
+                                              videoPath: video.path,
+                                              videoList: video.name)));
+                                },
+                                leading: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Container(
+                                      width: 80,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0D1117),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.movie_outlined,
+                                        color: Colors.white24,
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.play_arrow_rounded,
+                                      color: Colors.white,
+                                      size: 30,
+                                    )
+                                  ],
+                                ),
+                                title: Text(
+                                  video.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15),
+                                ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    "${video.duration} • Video", // You can format size here if available
+                                    style: const TextStyle(
+                                        color: Colors.white54, fontSize: 12),
+                                  ),
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.more_vert,
+                                      color: Color(0xFF22C55E)),
+                                  onPressed: () {
+                                    // Call your bottom sheet or options logic here
+                                    showVideoOptionsBottomSheet(
+                                      context: context,
+                                      videoName: getVideoName(videos[index]),
+                                      onDelete: () =>
+                                          _deleteVideo(videos[index], index),
+                                      onRename: () => renameVideo(
+                                        video: videos[index],
+                                        index: index,
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             );
                           },
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ],
+                  ),
+      ),
     );
   }
 

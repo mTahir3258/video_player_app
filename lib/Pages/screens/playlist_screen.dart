@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:player_app/Pages/screens/playlistcreatedScreen.dart';
+import 'package:player_app/google_ads_files/ads_helper.dart';
+import 'package:player_app/google_ads_files/ads_manager.dart';
 import 'package:player_app/model/system_video_model.dart';
 import 'package:player_app/model/video_playList.dart';
 import 'package:player_app/state/playlist_notifier.dart';
@@ -18,10 +21,43 @@ class PlayListScreen extends StatefulWidget {
 class _PlayListScreenState extends State<PlayListScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  BannerAd? _bannerAd;
+  InterstitialAd? _interstitialAd;
+
   @override
   void initState() {
     super.initState();
+    //full screen ads
+    // fullScreenAds();
+    _bannerAd = AdsHelper.loadBannerAds(
+      onAdLoaded: () {
+        setState(() {});
+      },
+    );
   }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    _interstitialAd?.dispose();
+    super.dispose();
+  }
+
+  // void fullScreenAds() {
+  //   AdsHelper.loadInterstitialAds(onLoaded: (ads) {
+  //     _interstitialAd = ads;
+  //     _interstitialAd?.show();
+  //   }, OnError: (error) {
+  //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  //       backgroundColor: Colors.red,
+  //       content: Text(
+  //         'Ads not loaded',
+  //         style: TextStyle(
+  //             fontSize: 15.0, color: Colors.black, fontWeight: FontWeight.w500),
+  //       ),
+  //     ));
+  //   });
+  // }
 
   void _createPlaylist() {
     final TextEditingController nameController = TextEditingController();
@@ -167,93 +203,115 @@ class _PlayListScreenState extends State<PlayListScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              icon: Icon(
-                Icons.arrow_back_ios_new,
-                color: Colors.white,
-                size: 20,
-              )),
-          title: const Text(
-            "Playlists",
-            style: TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
-          )),
-      floatingActionButton: GestureDetector(
-        onTap: () {
-          _createPlaylist();
-        },
-        child: Container(
-          height: screenHeight * 0.08,
-          width: screenWidth * 0.160,
-          margin: const EdgeInsets.symmetric(vertical: 10.0),
-          decoration: BoxDecoration(
-            color: Color(0xFF161B22),
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Icon(
-            Icons.add,
-            color: Color(0xFF22C55E),
-            size: 30,
+    return WillPopScope(
+      onWillPop: () async {
+        AdsManager.handelBackPress();
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F0F0F),
+        appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                icon: Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.white,
+                  size: 20,
+                )),
+            title: const Text(
+              "Playlists",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22),
+            )),
+        floatingActionButton: GestureDetector(
+          onTap: () {
+            _createPlaylist();
+          },
+          child: Container(
+            height: screenHeight * 0.08,
+            width: screenWidth * 0.160,
+            margin: const EdgeInsets.symmetric(vertical: 10.0),
+            decoration: BoxDecoration(
+              color: Color(0xFF161B22),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Icon(
+              Icons.add,
+              color: Color(0xFF22C55E),
+              size: 30,
+            ),
           ),
         ),
-      ),
 
-      // 🔥 THIS IS IMPORTANT
-      body: ValueListenableBuilder(
-        valueListenable: playlistNotifier,
-        builder: (context, List<VideoPlaylist> playlists, _) {
-          if (playlists.isEmpty) {
-            return _buildEmptyState();
-          }
+        // 🔥 THIS IS IMPORTANT
+        body: Column(
+          children: [
+            if (_bannerAd != null)
+              Container(
+                alignment: Alignment.center,
+                height: _bannerAd!.size.height.toDouble(),
+                width: _bannerAd!.size.width.toDouble(),
+                child: AdWidget(ad: _bannerAd!),
+              ),
+            Expanded(
+              child: ValueListenableBuilder(
+                valueListenable: playlistNotifier,
+                builder: (context, List<VideoPlaylist> playlists, _) {
+                  if (playlists.isEmpty) {
+                    return _buildEmptyState();
+                  }
 
-          return ListView.builder(
-            padding: EdgeInsets.all(16),
-            itemCount: playlists.length,
-            itemBuilder: (context, index) {
-              final playlist = playlists[index];
+                  return ListView.builder(
+                    padding: EdgeInsets.all(16),
+                    itemCount: playlists.length,
+                    itemBuilder: (context, index) {
+                      final playlist = playlists[index];
 
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12)),
-                child: ListTile(
-                  leading: const Icon(
-                    Icons.playlist_play,
-                    color: Color(0xFF1ED760),
-                  ),
-                  title: Text(
-                    playlist.name,
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(
-                    "${playlist.videos.length} videos",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => Playlistcreatedscreen(
-                          playlist: playlist,
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12)),
+                        child: ListTile(
+                          leading: const Icon(
+                            Icons.playlist_play,
+                            color: Color(0xFF1ED760),
+                          ),
+                          title: Text(
+                            playlist.name,
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            "${playlist.videos.length} videos",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => Playlistcreatedscreen(
+                                  playlist: playlist,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
-          );
-        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -297,5 +355,4 @@ class _PlayListScreenState extends State<PlayListScreen> {
       ),
     );
   }
-
 }

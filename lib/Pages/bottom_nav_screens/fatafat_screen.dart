@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:player_app/google_ads_files/ads_helper.dart';
 import 'package:video_player/video_player.dart';
 
 class FatafatScreen extends StatefulWidget {
@@ -12,7 +14,8 @@ class _FatafatScreenState extends State<FatafatScreen> {
   late PageController _homePageController;
   late PageController _forYouPageController;
 
-
+  //loading full screen ads
+  InterstitialAd? _interstitialAd;
 
   final List<String> videoUrls = [
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
@@ -25,18 +28,38 @@ class _FatafatScreenState extends State<FatafatScreen> {
     'home': {},
     'forYou': {},
   };
- 
+
   int _homeIndex = 0;
   int _forYouIndex = 0;
 
   @override
   void initState() {
     super.initState();
+
+    //ads screen
+    fullScreenAds();
+
     _homePageController = PageController();
     _forYouPageController = PageController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeVideo('home', 0);
+    });
+  }
+
+  //logic of full screen ads
+  void fullScreenAds() {
+    AdsHelper.loadInterstitialAds(onLoaded: (ads) {
+      _interstitialAd = ads;
+      _interstitialAd?.show();
+      setState(() {});
+    }, OnError: (error) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+        'Ads not loaded ',
+        style: TextStyle(
+            fontSize: 15.0, color: Colors.black, fontWeight: FontWeight.w500),
+      )));
     });
   }
 
@@ -107,76 +130,77 @@ class _FatafatScreenState extends State<FatafatScreen> {
     //font body size
     final bodyFont = shortestSide * 0.04;
 
+    return
+        // DefaultTabController(
+        //   length: 2,
+        // child:
+        Scaffold(
+            backgroundColor: Color(0xFF0D1117),
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              title: Text(
+                ' Live  Videos',
+                style: TextStyle(
+                    fontSize: 22,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold),
+              ),
 
-    return 
-    // DefaultTabController(
-    //   length: 2,
-      // child:
-       Scaffold(
-        backgroundColor: Color(0xFF0D1117),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20, ),
-          ),
-          title: Text(
-            ' Live  Videos',
-            style: TextStyle(
-              fontSize:22 ,
-              color: Colors.white,
-              fontWeight: FontWeight.bold
+              // actions: [
+              //   Padding(
+              //     padding: EdgeInsets.only(right: width * 0.03),
+              //     child: CircleAvatar(
+              //       child: Icon(Icons.person, size: iconSize * 0.7),
+              //     ),
+              //   ),
+              // ],
+              // bottom: TabBar(
+              //   labelStyle: TextStyle(fontSize: titleFont * 0.9),
+              //   tabs: [
+              //     Tab(text: 'Home'),
+              //     Tab(text: 'For You'),
+              //   ],
+              // ),
             ),
-          ),
+            body: Center(
+              child: Text(
+                'Live Videos',
+                style: TextStyle(fontSize: 15.0),
+              ),
+            )
 
-          // actions: [
-          //   Padding(
-          //     padding: EdgeInsets.only(right: width * 0.03),
-          //     child: CircleAvatar(
-          //       child: Icon(Icons.person, size: iconSize * 0.7),
-          //     ),
-          //   ),
-          // ],
-          // bottom: TabBar(
-          //   labelStyle: TextStyle(fontSize: titleFont * 0.9),
-          //   tabs: [
-          //     Tab(text: 'Home'),
-          //     Tab(text: 'For You'),
-          //   ],
-          // ),
+            // TabBarView(
+            //   children: [
+            //     _buildReelsFeed('home', _homePageController, _homeIndex, (index) {
+            //       setState(() => _homeIndex = index);
+            //       _managePlayback('home', index);
+            //       if (index + 1 < videoUrls.length) {
+            //         _initializeVideo('home', index + 1);
+            //       }
+            //     }),
+            //     _buildReelsFeed('forYou', _forYouPageController, _forYouIndex, (
+            //       index,
+            //     ) {
+            //       setState(() => _forYouIndex = index);
+            //       _managePlayback('forYou', index);
+            //       if (index + 1 < videoUrls.length) {
+            //         _initializeVideo('forYou', index + 1);
+            //       }
+            //     }),
+            //   ],
+            // ),
 
-        ),
-        body: Center(
-          child: Text(
-            'Live Videos',
-            style: TextStyle(fontSize: 15.0),
-          ),
-        )
-
-        // TabBarView(
-        //   children: [
-        //     _buildReelsFeed('home', _homePageController, _homeIndex, (index) {
-        //       setState(() => _homeIndex = index);
-        //       _managePlayback('home', index);
-        //       if (index + 1 < videoUrls.length) {
-        //         _initializeVideo('home', index + 1);
-        //       }
-        //     }),
-        //     _buildReelsFeed('forYou', _forYouPageController, _forYouIndex, (
-        //       index,
-        //     ) {
-        //       setState(() => _forYouIndex = index);
-        //       _managePlayback('forYou', index);
-        //       if (index + 1 < videoUrls.length) {
-        //         _initializeVideo('forYou', index + 1);
-        //       }
-        //     }),
-        //   ],
-        // ),
-     
-      // ),
-    );
+            // ),
+            );
   }
 
   // Widget _buildReelsFeed(
@@ -230,5 +254,4 @@ class _FatafatScreenState extends State<FatafatScreen> {
   //     onPageChanged: onPageChanged,
   //   );
   // }
-
 }

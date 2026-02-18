@@ -4,6 +4,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:player_app/google_ads_files/ads_manager.dart';
 
 class DetailedVideos extends StatefulWidget {
   final String videoPath;
@@ -93,25 +94,22 @@ class _DetailedVideosState extends State<DetailedVideos> {
       _currentFit = _currentFit == BoxFit.contain
           ? BoxFit.cover
           : _currentFit == BoxFit.cover
-          ? BoxFit.fill
-          : BoxFit.contain;
+              ? BoxFit.fill
+              : BoxFit.contain;
     });
   }
 
-
-void _playVideo() {
-  _player.open(Media(widget.videoPath));
-}
+  void _playVideo() {
+    _player.open(Media(widget.videoPath));
+  }
 
   @override
-void initState() {
-  super.initState();
-  _player = Player();
-  _videoController = VideoController(_player);
-  _playVideo();
-}
-
-
+  void initState() {
+    super.initState();
+    _player = Player();
+    _videoController = VideoController(_player);
+    _playVideo();
+  }
 
   @override
   void dispose() {
@@ -186,214 +184,253 @@ void initState() {
     );
   }
 
-@override
-Widget build(BuildContext context) {
-  final media = MediaQuery.of(context);
-  final base = media.size.shortestSide;
-  final iconSize = base * 0.08;
-  final padding = base * 0.025;
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final base = media.size.shortestSide;
+    final iconSize = base * 0.08;
+    final padding = base * 0.025;
 
-  return Scaffold(
-    body: SafeArea(
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          setState(() {
-            _showControls = !_showControls;
-          });
-        },
-        child: Stack(
-          children: [
-            // Video
-            Positioned.fill(
-              child: Video(
-                controller: _videoController,
-                fit: _currentFit,
-                controls: null,
-              ),
-            ),
-
-            // UI OVERLAY (shown only when _showControls)
-            if (_showControls && !_isLocked) ...[
-              // Top App Bar + Speed/Rotate
-              Align(
-                alignment: Alignment.topCenter,
-                child: Container(
-                  color: Colors.black54,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: padding,
-                    vertical: padding / 2,
+    return WillPopScope(
+      onWillPop: () async {
+        AdsManager.handelBackPress();
+        return true;
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              setState(() {
+                _showControls = !_showControls;
+              });
+            },
+            child: Stack(
+              children: [
+                // Video
+                Positioned.fill(
+                  child: Video(
+                    controller: _videoController,
+                    fit: _currentFit,
+                    controls: null,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // App Bar
-                      Row(
+                ),
+
+                // UI OVERLAY (shown only when _showControls)
+                if (_showControls && !_isLocked) ...[
+             // Top App Bar + Speed/Rotate
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      color: Colors.black54,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: padding,
+                        vertical: padding / 2,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                            iconSize: iconSize,
-                            icon: const Icon(Icons.arrow_back,
-                                color: Colors.white),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                          Expanded(
-                            child: Text(
-                              widget.videoList,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: base * 0.045,
+                          // App Bar
+                          Row(
+                            children: [
+                              IconButton(
+                                iconSize: iconSize,
+                                icon: const Icon(Icons.arrow_back,
+                                    color: Colors.white),
+                                onPressed: () => Navigator.pop(context),
                               ),
+                              Expanded(
+                                child: Text(
+                                  widget.videoList,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: base * 0.045,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Speed + Fullscreen (right aligned)
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        top: media.padding.top +
+                            (base * 0.2), // responsive top padding
+                        left: base * 0.07,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: _showSpeedDialog,
+                            child: Icon(
+                              Icons.speed,
+                              color: Colors.white,
+                              size: iconSize,
+                            ),
+                          ),
+                          SizedBox(width: padding),
+                          GestureDetector(
+                            onTap: _toggleFullscreen,
+                            child: Icon(
+                              _isFullscreen
+                                  ? Icons.screen_rotation
+                                  : Icons.screen_rotation,
+                              color: Colors.white,
+                              size: iconSize,
                             ),
                           ),
                         ],
                       ),
-
-                  
-                    ],
+                    ),
                   ),
-                ),
-              ),
 
-
-                      // Speed + Fullscreen (right aligned)
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Padding(
-                         padding: EdgeInsets.only(
-                          top: media.padding.top + (base * 0.2),   // responsive top padding
-                          left: base * 0.07,     
-                         ),               
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              GestureDetector(
-                                onTap: _showSpeedDialog,
-                                child: Icon(
-                                  Icons.speed,
-                                  color: Colors.white,
-                                  size: iconSize,
-                                ),
-                              ),
-                              SizedBox(width: padding),
-                              GestureDetector(
-                                onTap: _toggleFullscreen,
-                                child: Icon(
-                                  _isFullscreen
-                                      ? Icons.screen_rotation
-                                      : Icons.screen_rotation,
-                                  color: Colors.white,
-                                  size: iconSize,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                 
-
-              // Bottom Controls
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: padding),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Seek + Time
-                      StreamBuilder<Duration>(
-                        stream: _player.stream.position,
-                        builder: (context, snapshot) {
-                          final realPos =
-                              snapshot.data ?? Duration.zero;
-                          final realDur = _player.state.duration;
-
-                          return Column(
-                            children: [
-                              Slider(
-                                min: 0,
-                                max: realDur.inMilliseconds.toDouble(),
-                                value: realPos.inMilliseconds
-                                    .clamp(0, realDur.inMilliseconds)
-                                    .toDouble(),
-                                onChanged: (v) =>
-                                    _player.seek(Duration(milliseconds: v.toInt())),
-                              ),
-                              Padding(
-                                padding:
-                                    EdgeInsets.symmetric(horizontal: padding),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      _format(_displayTime(realPos)),
-                                      style:
-                                          const TextStyle(color: Colors.white),
-                                    ),
-                                    Text(
-                                      _format(_displayTime(realDur)),
-                                      style:
-                                          const TextStyle(color: Colors.white),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-
-                      SizedBox(height: padding / 2),
-
-                      // Play / Other Controls
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  // Bottom Controls
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: padding),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          _control(icon: Icons.lock_open, size: iconSize,
-                              onTap: () {
-                                setState(() {
-                                  _isLocked = !_isLocked;
-                                });
-                              }),
-                          _control(icon: Icons.arrow_back, size: iconSize,
-                              onTap: _seekBackward),
-                          StreamBuilder<bool>(
-                            stream: _player.stream.playing,
-                            builder: (ctx, snap) {
-                              return _control(
-                                icon: snap.data == true
-                                    ? Icons.pause
-                                    : Icons.play_arrow,
-                                size: iconSize,
-                                onTap: _togglePlayPause,
+                          // Seek + Time
+                          StreamBuilder<Duration>(
+                            stream: _player.stream.position,
+                            builder: (context, snapshot) {
+                              final realPos = snapshot.data ?? Duration.zero;
+                              final realDur = _player.state.duration;
+
+                              return Column(
+                                children: [
+                                  Slider(
+                                    min: 0,
+                                    max: realDur.inMilliseconds.toDouble(),
+                                    value: realPos.inMilliseconds
+                                        .clamp(0, realDur.inMilliseconds)
+                                        .toDouble(),
+                                    onChanged: (v) => _player.seek(
+                                        Duration(milliseconds: v.toInt())),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: padding),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          _format(_displayTime(realPos)),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        ),
+                                        Text(
+                                          _format(_displayTime(realDur)),
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               );
                             },
                           ),
-                          _control(icon: Icons.arrow_forward, size: iconSize,
-                              onTap: _seekForward),
-                          _control(icon: Icons.aspect_ratio,
-                              size: iconSize, onTap: _toggleFit),
-                          _control(
-                            icon: _isFullscreen
-                                ? Icons.fullscreen
-                                : Icons.fullscreen,
-                            size: iconSize,
-                            onTap: _toggleFullscreen,
+
+                          SizedBox(height: padding / 2),
+
+                          // Play / Other Controls
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _control(
+                                  icon: _isLocked ? Icons.lock : Icons.lock_open,
+                                  size: iconSize,
+                                  
+                                  onTap: () {
+                                    setState(() {
+                                      _isLocked = !_isLocked;
+                                    });
+                                  }),
+                              _control(
+                                  icon: Icons.arrow_back,
+                                  size: iconSize,
+                                  onTap: _seekBackward),
+                              StreamBuilder<bool>(
+                                stream: _player.stream.playing,
+                                builder: (ctx, snap) {
+                                  return _control(
+                                    icon: snap.data == true
+                                        ? Icons.pause
+                                        : Icons.play_arrow,
+                                    size: iconSize,
+                                    onTap: _togglePlayPause,
+                                  );
+                                },
+                              ),
+                              _control(
+                                  icon: Icons.arrow_forward,
+                                  size: iconSize,
+                                  onTap: _seekForward),
+                              _control(
+                                  icon: Icons.aspect_ratio,
+                                  size: iconSize,
+                                  onTap: _toggleFit),
+                              _control(
+                                icon: _isFullscreen
+                                    ? Icons.fullscreen
+                                    : Icons.fullscreen,
+                                size: iconSize,
+                                onTap: _toggleFullscreen,
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            ], // end if _showControls
-          ],
+                ], // end if _showControls
+             
+                  if (_isLocked)
+  Positioned(
+    left: 15.0,
+    top: 18.0,
+    child: GestureDetector(
+      onTap: () {
+        setState(() {
+          _isLocked = false;   // 👈 unlock
+          _showControls = true;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.all(iconSize * 0.35),
+        decoration: BoxDecoration(
+          color: Colors.black54,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.lock,   // 🔒 unlock icon
+          color: Colors.white,
+          size: iconSize * 1.2,
         ),
       ),
     ),
-  );
-}
+  ),
+
+     
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _control({
     required IconData icon,

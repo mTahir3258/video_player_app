@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:hive_flutter/adapters.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:photo_manager/src/types/entity.dart';
 import 'package:player_app/Pages/detailed_videos.dart';
+import 'package:player_app/google_ads_files/ads_helper.dart';
+import 'package:player_app/google_ads_files/ads_manager.dart';
 import 'package:player_app/model/system_video_model.dart';
 import 'package:player_app/model/video_playList.dart';
-import 'package:player_app/services/video_service.dart';
 import 'package:player_app/state/playlist_notifier.dart';
 
 class Playlistcreatedscreen extends StatefulWidget {
@@ -20,6 +20,45 @@ class Playlistcreatedscreen extends StatefulWidget {
 class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
   List<SystemVideo> videos = [];
 
+  //variable for interstial ads
+  InterstitialAd? _interstitialAd;
+
+  //variable for banner Ads
+  BannerAd? _bannerAd;
+
+  @override
+  void initState() {
+    super.initState();
+    videos = List<SystemVideo>.from(widget.playlist.videos);
+    _bannerAd = AdsHelper.loadBannerAds(
+      onAdLoaded: () {
+        setState(() {});
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    _bannerAd?.dispose();
+  }
+  // void fullScreenAds() {
+  //   AdsHelper.loadInterstitialAds(onLoaded: (ads) {
+  //     _interstitialAd = ads;
+  //     _interstitialAd?.show();
+  //   }, OnError: (error) {
+  //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+  //         backgroundColor: Colors.red,
+  //         content: Text(
+  //           'The Ad is not loaded ',
+  //           style: TextStyle(
+  //               fontSize: 15.0,
+  //               color: Colors.black,
+  //               fontWeight: FontWeight.w500),
+  //         )));
+  //   });
+  // }
+
   void savePlaylist(VideoPlaylist playlist) async {
     final box = Hive.box<VideoPlaylist>('playlistBox');
     await box.add(playlist);
@@ -28,12 +67,6 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
   void getPlaylist() async {
     final box = Hive.box<VideoPlaylist>('playlistBox');
     await box.values.toList();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    videos = List<SystemVideo>.from(widget.playlist.videos);
   }
 
   @override
@@ -107,7 +140,7 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
 
           //delete playlist from hive
           await widget.playlist.delete();
-          
+
         playlistNotifier.loadPlaylists();
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -296,94 +329,116 @@ class _PlaylistcreatedscreenState extends State<Playlistcreatedscreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: Color(0xFF0D1117),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            icon: Icon(
-              Icons.arrow_back_ios,
-              color: Colors.white,
-            )),
-        title: Text(
-          widget.playlist.name,
-          style: TextStyle(
-              fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: ListView.builder(
-        itemCount: videos.length,
-        itemBuilder: (context, index) {
-          final video = videos[index];
-
-          return Container(
-            margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-            decoration: BoxDecoration(
-                color: Color(0xFF161B22),
-                borderRadius: BorderRadius.circular(15.0)),
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return DetailedVideos(
-                      videoPath: video.path, videoList: video.name);
-                }));
+    return WillPopScope(
+      onWillPop: () async{
+        AdsManager.handelBackPress();
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: Color(0xFF0D1117),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+              onPressed: () {
+                Navigator.pop(context);
               },
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 15.0),
-                child: ListTile(
-                  leading: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        height: 60,
-                        width: 80,
-                        decoration: BoxDecoration(
-                          color: Color(0xFF0D1117),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.movie_outlined,
-                          color: Colors.white24,
-                        ),
-                      ),
-                      const Icon(
-                        Icons.play_arrow_rounded,
-                        color: Colors.white,
-                        size: 30,
-                      ),
-                    ],
-                  ),
-                  title: Text(
-                    '${video.name}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white),
-                  ),
-                  trailing: IconButton(
-                      onPressed: () {
-                        showVideoOptionsBottomSheet(
-                            context: context,
-                            videoName: getVideoName(videos[index]),
-                            onDelete: () => _deleteVideo(videos[index], index),
-                            onRename: () => renameVideo(
-                                video: videos[index], index: index));
+              icon: Icon(
+                Icons.arrow_back_ios,
+                color: Colors.white,
+              )),
+          title: Text(
+            widget.playlist.name,
+            style: TextStyle(
+                fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+        body: Column(
+          children: [
+            if (_bannerAd != null)
+              Container(
+                alignment: Alignment.center,
+                height: _bannerAd!.size.height.toDouble(),
+                width: _bannerAd!.size.width.toDouble(),
+                child: AdWidget(ad: _bannerAd!),
+              ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: videos.length,
+                itemBuilder: (context, index) {
+                  final video = videos[index];
+
+                  return Container(
+                    margin:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                    decoration: BoxDecoration(
+                        color: Color(0xFF161B22),
+                        borderRadius: BorderRadius.circular(15.0)),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (context) {
+                          return DetailedVideos(
+                              videoPath: video.path, videoList: video.name);
+                        }));
                       },
-                      icon: Icon(
-                        Icons.more_vert,
-                        color: Color(0xFF22C55E),
-                      )),
-                ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 15.0),
+                        child: ListTile(
+                          leading: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Container(
+                                height: 60,
+                                width: 80,
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF0D1117),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.movie_outlined,
+                                  color: Colors.white24,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Colors.white,
+                                size: 30,
+                              ),
+                            ],
+                          ),
+                          title: Text(
+                            '${video.name}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white),
+                          ),
+                          trailing: IconButton(
+                              onPressed: () {
+                                showVideoOptionsBottomSheet(
+                                    context: context,
+                                    videoName: getVideoName(videos[index]),
+                                    onDelete: () =>
+                                        _deleteVideo(videos[index], index),
+                                    onRename: () => renameVideo(
+                                        video: videos[index], index: index));
+                              },
+                              icon: Icon(
+                                Icons.more_vert,
+                                color: Color(0xFF22C55E),
+                              )),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
