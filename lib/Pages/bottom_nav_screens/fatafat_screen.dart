@@ -1,3 +1,4 @@
+// comment: import needed packages
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:player_app/google_ads_files/ads_helper.dart';
@@ -11,24 +12,27 @@ class FatafatScreen extends StatefulWidget {
 }
 
 class _FatafatScreenState extends State<FatafatScreen> {
+  // comment: page controllers for vertical video feeds
   late PageController _homePageController;
   late PageController _forYouPageController;
 
-  //loading full screen ads
+  // comment: interstitial ad variable
   InterstitialAd? _interstitialAd;
 
+  // comment: list of video URLs
   final List<String> videoUrls = [
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
     "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4",
-  ].map((url) => url.trim()).toList(); // ✅ Fix trailing spaces
+  ].map((url) => url.trim()).toList();
 
-  // Separate controllers per tab to avoid conflicts
+  // comment: separate video controllers per tab
   final Map<String, Map<int, VideoPlayerController>> _allControllers = {
     'home': {},
     'forYou': {},
   };
 
+  // comment: current playing index
   int _homeIndex = 0;
   int _forYouIndex = 0;
 
@@ -36,68 +40,82 @@ class _FatafatScreenState extends State<FatafatScreen> {
   void initState() {
     super.initState();
 
-    //ads screen
-    fullScreenAds();
-
+    // comment: initialize page controllers
     _homePageController = PageController();
     _forYouPageController = PageController();
 
+    // comment: load full screen ad
+    fullScreenAds();
+
+    // comment: initialize first video after UI build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeVideo('home', 0);
     });
   }
 
-  //logic of full screen ads
+  // comment: load and show interstitial ad
   void fullScreenAds() {
-    AdsHelper.loadInterstitialAds(onLoaded: (ads) {
-      _interstitialAd = ads;
-      _interstitialAd?.show();
-      setState(() {});
-    }, OnError: (error) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-        'Ads not loaded ',
-        style: TextStyle(
-            fontSize: 15.0, color: Colors.black, fontWeight: FontWeight.w500),
-      )));
-    });
+    AdsHelper.loadInterstitialAds(
+      onLoaded: (ads) {
+        _interstitialAd = ads;
+        _interstitialAd?.show();
+
+        if (mounted) {
+          setState(() {}); // comment: refresh UI if needed
+        }
+      },
+      OnError: (error) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ads not loaded'),
+          ),
+        );
+      },
+    );
   }
 
+  // comment: initialize video safely
   Future<void> _initializeVideo(String tab, int index) async {
     final controllers = _allControllers[tab]!;
 
-    // Skip if already initialized
+    // comment: skip if already loaded
     if (controllers.containsKey(index)) return;
 
-    // ✅ CORRECT: Declare controller variable BEFORE using it
-    final VideoPlayerController controller = VideoPlayerController.network(
-      videoUrls[index].trim(), // Always trim URLs
+    // comment: create video controller
+    final controller = VideoPlayerController.network(
+      videoUrls[index],
     )..setLooping(true);
 
     try {
-      // Store controller BEFORE initializing to avoid race conditions
+      // comment: store controller before initialize
       controllers[index] = controller;
 
-      // Initialize and play if needed
       await controller.initialize();
 
-      if (mounted) {
-        final isActive = (tab == 'home' && index == _homeIndex) ||
-            (tab == 'forYou' && index == _forYouIndex);
-        if (isActive) {
-          await controller.play();
-        }
-        setState(() {}); // Trigger UI update
+      if (!mounted) return;
+
+      // comment: play only active video
+      final isActive = (tab == 'home' && index == _homeIndex) ||
+          (tab == 'forYou' && index == _forYouIndex);
+
+      if (isActive) {
+        await controller.play();
       }
+
+      setState(() {}); // comment: update UI
     } catch (e) {
-      debugPrint('❌ Failed to load video [$tab:$index]: $e');
+      // comment: remove broken controller
       controllers.remove(index);
       controller.dispose();
     }
   }
 
+  // comment: manage play/pause
   void _managePlayback(String tab, int activeIndex) {
     final controllers = _allControllers[tab]!;
+
     controllers.forEach((index, controller) {
       if (index == activeIndex &&
           controller.value.isInitialized &&
@@ -111,147 +129,74 @@ class _FatafatScreenState extends State<FatafatScreen> {
 
   @override
   void dispose() {
-    _allControllers.values.forEach((controllers) {
-      controllers.values.forEach((controller) => controller.dispose());
-    });
+    // comment: dispose ads
+    _interstitialAd?.dispose();
+
+    // comment: dispose all video controllers
+    for (var tabControllers in _allControllers.values) {
+      for (var controller in tabControllers.values) {
+        controller.dispose();
+      }
+    }
+
+    // comment: dispose page controllers
     _homePageController.dispose();
     _forYouPageController.dispose();
+
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final width = media.size.width;
+
+    // comment: responsive base size
     final shortestSide = media.size.shortestSide;
+
+    // comment: responsive sizes
     final iconSize = shortestSide * 0.06;
-    //font size dof title
     final titleFont = shortestSide * 0.05;
-    //font body size
     final bodyFont = shortestSide * 0.04;
 
-    return
-        // DefaultTabController(
-        //   length: 2,
-        // child:
-        Scaffold(
-            backgroundColor: Color(0xFF0D1117),
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              leading: IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: Icon(
-                  Icons.arrow_back_ios_new,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              title: Text(
-                ' Live  Videos',
-                style: TextStyle(
-                    fontSize: 22,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold),
-              ),
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D1117),
 
-              // actions: [
-              //   Padding(
-              //     padding: EdgeInsets.only(right: width * 0.03),
-              //     child: CircleAvatar(
-              //       child: Icon(Icons.person, size: iconSize * 0.7),
-              //     ),
-              //   ),
-              // ],
-              // bottom: TabBar(
-              //   labelStyle: TextStyle(fontSize: titleFont * 0.9),
-              //   tabs: [
-              //     Tab(text: 'Home'),
-              //     Tab(text: 'For You'),
-              //   ],
-              // ),
-            ),
-            body: Center(
-              child: Text(
-                'Live Videos',
-                style: TextStyle(fontSize: 15.0),
-              ),
-            )
+      // comment: top bar
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
 
-            // TabBarView(
-            //   children: [
-            //     _buildReelsFeed('home', _homePageController, _homeIndex, (index) {
-            //       setState(() => _homeIndex = index);
-            //       _managePlayback('home', index);
-            //       if (index + 1 < videoUrls.length) {
-            //         _initializeVideo('home', index + 1);
-            //       }
-            //     }),
-            //     _buildReelsFeed('forYou', _forYouPageController, _forYouIndex, (
-            //       index,
-            //     ) {
-            //       setState(() => _forYouIndex = index);
-            //       _managePlayback('forYou', index);
-            //       if (index + 1 < videoUrls.length) {
-            //         _initializeVideo('forYou', index + 1);
-            //       }
-            //     }),
-            //   ],
-            // ),
+        // comment: back button
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.white,
+            size: iconSize,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
 
-            // ),
-            );
+        // comment: title
+        title: Text(
+          'Live Videos',
+          style: TextStyle(
+            fontSize: titleFont,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+
+      // comment: body placeholder
+      body: Center(
+        child: Text(
+          'Live Videos',
+          style: TextStyle(
+            fontSize: bodyFont,
+            color: Colors.white70,
+          ),
+        ),
+      ),
+    );
   }
-
-  // Widget _buildReelsFeed(
-  //   String tab,
-  //   PageController controller,
-  //   int currentIndex,
-  //   void Function(int) onPageChanged,
-  // ) {
-  //   return PageView.builder(
-  //     controller: controller,
-  //     scrollDirection: Axis.vertical,
-  //     itemCount: videoUrls.length,
-  //     itemBuilder: (context, index) {
-  //       final controllers = _allControllers[tab]!;
-  //       // Preload adjacent videos
-  //       if (!controllers.containsKey(index) &&
-  //           (index == currentIndex ||
-  //               index == currentIndex - 1 ||
-  //               index == currentIndex + 1)) {
-  //         _initializeVideo(tab, index);
-  //       }
-
-  //       final videoController = controllers[index];
-
-  //       return Stack(
-  //         children: [
-  //           // Ensures Flutter can paint this immediately and dismiss the splash
-  //           const ColoredBox(color: Colors.black),
-
-  //           if (videoController == null || !videoController.value.isInitialized)
-  //             const Center(child: CircularProgressIndicator())
-  //           else
-  //             GestureDetector(
-  //               onTap: () {
-  //                 if (videoController.value.isPlaying) {
-  //                   videoController.pause();
-  //                 } else {
-  //                   videoController.play();
-  //                 }
-  //               },
-  //               child: Center(
-  //                 child: AspectRatio(
-  //                   aspectRatio: videoController.value.aspectRatio,
-  //                   child: VideoPlayer(videoController),
-  //                 ),
-  //               ),
-  //             ),
-  //         ],
-  //       );
-  //     },
-  //     onPageChanged: onPageChanged,
-  //   );
-  // }
 }

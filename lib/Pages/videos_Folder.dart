@@ -17,21 +17,28 @@ class VideosFolder extends StatefulWidget {
 }
 
 class _VideosFolderState extends State<VideosFolder> {
-  final TextEditingController _textController = TextEditingController();
-  bool _isSearching = false;
-  bool _loading = true;
 
-  //Interestitail Ads
+  // ✅ Controller for search field
+  final TextEditingController _textController = TextEditingController();
+
+  bool _isSearching = false; // ✅ Search mode toggle
+  bool _loading = true;       // ✅ Loading state
+
+  // ✅ Interstitial Ad
   InterstitialAd? _interstitialAd;
 
-  //Banner Ads instance
-  static BannerAd? _bannerAd;
+  // ✅ Banner Ad
+  BannerAd? _bannerAd;
 
+  // ✅ Folder lists
   List<VideoFolder> folders = [];
   List<VideoFolder> allFolders = [];
+
+  // ✅ Folder IDs
   List<String> folderIds = [];
   List<String> allFolderIds = [];
 
+  // ✅ Top horizontal menu
   final List<HorizontalFolderlistModel> horizontalFolders = [
     HorizontalFolderlistModel(
       iconsName: Icons.playlist_add,
@@ -43,78 +50,78 @@ class _VideosFolderState extends State<VideosFolder> {
   void initState() {
     super.initState();
 
-    //Banner Ads
+    // ✅ Load banner ad
     _bannerAd = AdsHelper.loadBannerAds(
       onAdLoaded: () {
-        setState(() {
-          // _loading = true;
-        });
+        if (!mounted) return;
+        setState(() {});
       },
     );
 
-    //===full screen ads ====
-    // fullscreenAds();
+    // ✅ Load folders
     _loadVideoFolders();
   }
 
-// full screen ads
-  void fullscreenAds() {
-    AdsHelper.loadInterstitialAds(onLoaded: (ads) {
-      _interstitialAd = ads;
-      _interstitialAd?.show();
-
-      setState(() {});
-    }, OnError: (error) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-        'Full Screen ad is not loaded ',
-        style: TextStyle(
-            fontSize: 15.0, color: Colors.white, fontWeight: FontWeight.w500),
-      )));
-      setState(() {});
-    });
-  }
-
+  // ✅ Load folders from device
   Future<void> _loadVideoFolders() async {
-    final PermissionState ps = await PhotoManager.requestPermissionExtend();
 
+    // ✅ Request permission
+    final PermissionState ps =
+        await PhotoManager.requestPermissionExtend();
+
+    // ❌ If permission denied → stop loading
     if (!ps.isAuth) {
       setState(() => _loading = false);
       return;
     }
 
-    final paths = await PhotoManager.getAssetPathList(type: RequestType.video);
+    // ✅ Get video folders
+    final paths =
+        await PhotoManager.getAssetPathList(type: RequestType.video);
 
     final List<VideoFolder> temp = [];
     final List<String> tempIds = [];
 
     for (final path in paths) {
+
+      // ✅ Get video count
       final count = await path.assetCountAsync;
+
+      // ❌ Skip empty folders
       if (count == 0) continue;
 
+      // ✅ Add folder UI model
       temp.add(VideoFolder(
         icon: Icons.folder,
         title: path.name,
         subtitle: '$count Videos',
       ));
+
+      // ✅ Store folder ID
       tempIds.add(path.id);
     }
 
+    // ✅ Save lists
     folders = temp;
     allFolders = List.from(temp);
+
     folderIds = tempIds;
     allFolderIds = List.from(tempIds);
 
+    // ✅ Stop loader
     setState(() => _loading = false);
   }
 
+  // ✅ Filter folders when searching
   void _filterFolders(String query) {
     final lower = query.toLowerCase();
+
     setState(() {
       folders = allFolders
           .where((f) => f.title.toLowerCase().contains(lower))
           .toList();
 
+      // ✅ Map correct IDs
       folderIds = folders.map((f) {
         final i = allFolders.indexOf(f);
         return allFolderIds[i];
@@ -124,44 +131,61 @@ class _VideosFolderState extends State<VideosFolder> {
 
   @override
   Widget build(BuildContext context) {
+
     final media = MediaQuery.of(context);
-    final width = media.size.width;
-    final height = media.size.height;
-    final shortestSide = media.size.shortestSide;
+    final size = media.size;
+
+    // ✅ Base unit for responsiveness
+    final base = size.shortestSide;
+
+    final padding = base * 0.04;
+    final iconSize = base * 0.065;
+    final tileRadius = base * 0.05;
+    final horizontalHeight = base * 0.18;
 
     return WillPopScope(
       onWillPop: () async {
+        // ✅ Handle interstitial logic
         AdsManager.handelBackPress();
         return true;
       },
       child: Scaffold(
-        backgroundColor: Color(0xFF0D1117),
+        backgroundColor: const Color(0xFF0D1117),
+
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
+
           leading: const Icon(
             Icons.arrow_back_ios_new,
             color: Colors.white,
             size: 20,
           ),
+
+          // ✅ Title or Search Field
           title: _isSearching
               ? TextField(
                   controller: _textController,
                   onChanged: _filterFolders,
-                  style: TextStyle(color: Colors.white),
+
+                  // ✅ Typed text color
+                  style: const TextStyle(color: Colors.white),
+
                   decoration: const InputDecoration(
                     hintText: 'Search Folders...',
-                    hintStyle: TextStyle(color: Colors.white),
+                    hintStyle: TextStyle(color: Colors.white54),
                     border: InputBorder.none,
                   ),
                 )
               : const Text(
                   'Folders',
                   style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                  ),
                 ),
+
           actions: [
             IconButton(
               icon: Icon(
@@ -171,6 +195,8 @@ class _VideosFolderState extends State<VideosFolder> {
               onPressed: () {
                 setState(() {
                   _isSearching = !_isSearching;
+
+                  // ✅ Reset search
                   if (!_isSearching) {
                     _textController.clear();
                     _filterFolders('');
@@ -180,21 +206,32 @@ class _VideosFolderState extends State<VideosFolder> {
             )
           ],
         ),
+
         body: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(padding),
           child: Column(
             children: [
+
+              // ✅ Horizontal top button
               SizedBox(
-                height: height * 0.1,
+                height: horizontalHeight,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: horizontalFolders.length,
                   itemBuilder: (context, index) {
+
                     final item = horizontalFolders[index];
+
                     return InkWell(
                       onTap: () async {
-                        final videos = await SystemVideoService.getVideos();
 
+                        // ✅ Load all videos
+                        final videos =
+                            await SystemVideoService.getVideos();
+
+                        if (!mounted) return;
+
+                        // ✅ Open playlist screen
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -204,96 +241,133 @@ class _VideosFolderState extends State<VideosFolder> {
                           ),
                         );
                       },
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: Container(
-                          height: height * 0.08,
-                          width: width * 0.160,
-                          margin: const EdgeInsets.symmetric(vertical: 10.0),
-                          decoration: BoxDecoration(
-                            color: Color(0xFF161B22),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Icon(
-                            Icons.add,
-                            color: Color(0xFF22C55E),
-                            size: 30,
-                          ),
+                      child: Container(
+                        width: base * 0.22,
+                        margin: EdgeInsets.only(right: base * 0.03),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF161B22),
+                          borderRadius:
+                              BorderRadius.circular(base * 0.045),
+                        ),
+                        child: Icon(
+                          Icons.add,
+                          color: const Color(0xFF22C55E),
+                          size: iconSize,
                         ),
                       ),
                     );
                   },
                 ),
               ),
-              const SizedBox(
-                height: 10.0,
-              ),
+
+              SizedBox(height: base * 0.03),
+
+              // ✅ Folder list
               Expanded(
                 child: _loading
                     ? const Center(
                         child: CircularProgressIndicator(
-                        color: Color(0xFF22C55E),
-                      ))
+                          color: Color(0xFF22C55E),
+                        ),
+                      )
                     : ListView.builder(
-                        itemCount: folders.isEmpty ? 0 : folders.length * 2 - 1,
+
+                        // ✅ Insert ads between items
+                        itemCount:
+                            folders.isEmpty ? 0 : folders.length * 2 - 1,
+
                         itemBuilder: (context, index) {
+
+                          // ✅ Show ad at odd positions
                           if (index.isOdd) {
                             if (_bannerAd == null) {
                               return const SizedBox();
                             }
+
                             return Container(
                               alignment: Alignment.center,
-                              height: _bannerAd!.size.height.toDouble(),
-                              width: _bannerAd!.size.width.toDouble(),
+                              margin: EdgeInsets.symmetric(
+                                  vertical: base * 0.02),
+
+                              height:
+                                  _bannerAd!.size.height.toDouble(),
                               child: AdWidget(ad: _bannerAd!),
                             );
                           }
+
                           final folderIndex = index ~/ 2;
 
                           if (folderIndex >= folders.length) {
                             return const SizedBox();
                           }
+
+                          final folder = folders[folderIndex];
+
                           return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
+                            margin:
+                                EdgeInsets.only(bottom: base * 0.03),
+
                             decoration: BoxDecoration(
-                                color: const Color(0xFF161B22),
-                                borderRadius: BorderRadius.circular(20.0)),
+                              color: const Color(0xFF161B22),
+                              borderRadius:
+                                  BorderRadius.circular(tileRadius),
+                            ),
+
                             child: ListTile(
-                              contentPadding: const EdgeInsets.all(12.0),
+                              contentPadding:
+                                  EdgeInsets.all(base * 0.035),
+
+                              // ✅ Folder icon
                               leading: Container(
-                                padding: const EdgeInsets.all(12.0),
+                                padding:
+                                    EdgeInsets.all(base * 0.03),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF0D1117),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                          base * 0.03),
                                 ),
                                 child: Icon(
-                                  _getIcon(folders[folderIndex].title),
+                                  _getIcon(folder.title),
                                   color:
-                                      _getIconColor(folders[folderIndex].title),
+                                      _getIconColor(folder.title),
+                                  size: iconSize,
                                 ),
                               ),
+
+                              // ✅ Folder title
                               title: Text(
-                                folders[folderIndex].title,
+                                folder.title,
                                 style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold),
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: base * 0.045,
+                                ),
                               ),
+
+                              // ✅ Folder subtitle
                               subtitle: Text(
-                                folders[folderIndex].subtitle,
-                                style: TextStyle(color: Colors.white54),
+                                folder.subtitle,
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: base * 0.035,
+                                ),
                               ),
-                              trailing: const Icon(
+
+                              trailing: Icon(
                                 Icons.arrow_forward_ios,
                                 color: Colors.white24,
-                                size: 16,
+                                size: base * 0.04,
                               ),
+
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) => ListOfVideos(
-                                      folderName: folders[folderIndex].title,
-                                      folderPath: folderIds[folderIndex],
+                                      folderName: folder.title,
+                                      folderPath:
+                                          folderIds[folderIndex],
                                     ),
                                   ),
                                 );
@@ -310,16 +384,29 @@ class _VideosFolderState extends State<VideosFolder> {
     );
   }
 
-  // Helper to match icons from your screenshot
+  // ✅ Choose icon based on folder name
   IconData _getIcon(String title) {
     if (title.contains('Recent')) return Icons.folder_copy;
     if (title.contains('Camera')) return Icons.camera_alt;
     return Icons.file_download;
   }
 
+  // ✅ Choose icon color
   Color _getIconColor(String title) {
     if (title.contains('Recent')) return const Color(0xFF22C55E);
     if (title.contains('Camera')) return Colors.blueAccent;
     return Colors.orangeAccent;
+  }
+
+  @override
+  void dispose() {
+    // ✅ Dispose controller
+    _textController.dispose();
+
+    // ✅ Dispose ads
+    _bannerAd?.dispose();
+    _interstitialAd?.dispose();
+
+    super.dispose();
   }
 }

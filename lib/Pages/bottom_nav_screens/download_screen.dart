@@ -1,5 +1,10 @@
+// comment: import Flutter UI package
 import 'package:flutter/material.dart';
+
+// comment: import Google Mobile Ads
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+// comment: import your ads helper
 import 'package:player_app/google_ads_files/ads_helper.dart';
 
 class DownloadScreen extends StatefulWidget {
@@ -10,67 +15,100 @@ class DownloadScreen extends StatefulWidget {
 }
 
 class _DownloadScreenState extends State<DownloadScreen> {
+
+  // comment: variable to store interstitial ad
   InterstitialAd? _interstitialAd;
 
   @override
   void initState() {
     super.initState();
+
+    // comment: load full screen ad when screen opens
     fullScreenAds();
   }
 
-  //function for full screen ads
+  // comment: function to load and show ad
   void fullScreenAds() {
-    AdsHelper.loadInterstitialAds(onLoaded: (ads) {
-      _interstitialAd = ads;
-      _interstitialAd?.show();
-    }, OnError: (error) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            'Ads not loaded Successfully',
-            style: TextStyle(
-                fontSize: 15.0,
-                color: Colors.black,
-                fontWeight: FontWeight.w600),
-          )));
-    });
+    AdsHelper.loadInterstitialAds(
+
+      // comment: when ad loaded
+      onLoaded: (ads) {
+        _interstitialAd = ads;
+        _interstitialAd?.show();
+      },
+
+      // comment: when ad fails
+      OnError: (error) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ads not loaded'),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    // comment: dispose ad to free RAM
+    _interstitialAd?.dispose();
+
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+
+    // comment: get screen size
     final media = MediaQuery.of(context);
-    final width = media.size.width;
+
+    // comment: responsive base size
     final shortestSide = media.size.shortestSide;
+
+    // comment: responsive sizes
     final iconSize = shortestSide * 0.06;
-    //font size dof title
     final titleFont = shortestSide * 0.05;
-    //font body size
     final bodyFont = shortestSide * 0.04;
-    //basic layout structure scaffold
+
     return Scaffold(
-      //appbar
-      backgroundColor: Color(0xFF0D1117),
+      backgroundColor: const Color(0xFF0D1117),
+
+      // comment: top app bar
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        leading: Icon(
-          Icons.arrow_back_ios_new,
-          color: Colors.white,
-          size: 20,
+        elevation: 0,
+
+        // comment: back button
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.white,
+            size: iconSize,
+          ),
+          onPressed: () => Navigator.pop(context),
         ),
+
+        // comment: screen title
         title: Text(
           'Download Screen',
           style: TextStyle(
-            fontSize: 22,
+            fontSize: titleFont,
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
-      //body of the screen
+
+      // comment: screen body
       body: Center(
         child: Text(
           'Download Screen',
-          style: TextStyle(fontSize: bodyFont, color: Colors.white),
+          style: TextStyle(
+            fontSize: bodyFont,
+            color: Colors.white,
+          ),
         ),
       ),
     );

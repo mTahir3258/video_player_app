@@ -12,6 +12,7 @@ import 'package:player_app/state/playlist_notifier.dart';
 
 class PlayListScreen extends StatefulWidget {
   final List<SystemVideo> availableVideos;
+
   const PlayListScreen({super.key, required this.availableVideos});
 
   @override
@@ -21,44 +22,34 @@ class PlayListScreen extends StatefulWidget {
 class _PlayListScreenState extends State<PlayListScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  // comment: banner ad
   BannerAd? _bannerAd;
+
+  // comment: interstitial ad
   InterstitialAd? _interstitialAd;
 
   @override
   void initState() {
     super.initState();
-    //full screen ads
-    // fullScreenAds();
+
+    // comment: load banner ad
     _bannerAd = AdsHelper.loadBannerAds(
       onAdLoaded: () {
-        setState(() {});
+        if (mounted) setState(() {});
       },
     );
   }
 
   @override
   void dispose() {
+    // comment: dispose ads to free RAM
     _bannerAd?.dispose();
     _interstitialAd?.dispose();
+
     super.dispose();
   }
 
-  // void fullScreenAds() {
-  //   AdsHelper.loadInterstitialAds(onLoaded: (ads) {
-  //     _interstitialAd = ads;
-  //     _interstitialAd?.show();
-  //   }, OnError: (error) {
-  //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-  //       backgroundColor: Colors.red,
-  //       content: Text(
-  //         'Ads not loaded',
-  //         style: TextStyle(
-  //             fontSize: 15.0, color: Colors.black, fontWeight: FontWeight.w500),
-  //       ),
-  //     ));
-  //   });
-  // }
-
+  // comment: open create playlist bottom sheet
   void _createPlaylist() {
     final TextEditingController nameController = TextEditingController();
     final List<SystemVideo> selectedVideos = [];
@@ -66,43 +57,57 @@ class _PlayListScreenState extends State<PlayListScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Color(0xFF121212),
+      backgroundColor: const Color(0xFF121212),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (modelContext) {
+        final media = MediaQuery.of(modelContext);
+        final base = media.size.shortestSide;
+
+        // comment: responsive sizing
+        final fontSize = base * 0.045;
+        final padding = base * 0.04;
+
         return Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(modelContext).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 20,
+            bottom: media.viewInsets.bottom,
+            left: padding,
+            right: padding,
+            top: padding,
           ),
           child: StatefulBuilder(
             builder: (context, setModalState) {
               return Form(
                 key: _formKey,
                 child: SizedBox(
-                  height: MediaQuery.of(modelContext).size.height * 0.7,
+                  height: media.size.height * 0.75,
                   child: Column(
                     children: [
-                      const Text(
+                      // comment: title
+                      Text(
                         "Create Playlist",
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: fontSize,
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 20),
+
+                      SizedBox(height: padding),
+
+                      // comment: playlist name input
                       TextFormField(
                         controller: nameController,
+                        style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: "Playlist name",
-                          hintStyle: TextStyle(color: Colors.grey),
+                          hintStyle: const TextStyle(color: Colors.white),
                           filled: true,
+                          fillColor: Colors.white.withOpacity(0.05),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.0),
+                            borderRadius:
+                                BorderRadius.circular(base * 0.03),
                             borderSide: BorderSide.none,
                           ),
                         ),
@@ -113,21 +118,28 @@ class _PlayListScreenState extends State<PlayListScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 12),
+
+                      SizedBox(height: padding * 0.6),
+
+                      // comment: video list
                       Expanded(
                         child: ListView.builder(
                           itemCount: widget.availableVideos.length,
                           itemBuilder: (context, index) {
                             final video = widget.availableVideos[index];
-                            final isSelected = selectedVideos.contains(video);
+                            final isSelected =
+                                selectedVideos.contains(video);
 
                             return CheckboxListTile(
-                              checkColor: Colors.black,
-                              activeColor: const Color(0xFF1ED760),
                               value: isSelected,
+                              activeColor: const Color(0xFF1ED760),
+                              checkColor: Colors.black,
                               title: Text(
                                 video.name,
-                                style: const TextStyle(color: Colors.white),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: base * 0.040,
+                                ),
                               ),
                               onChanged: (val) {
                                 setModalState(() {
@@ -142,51 +154,58 @@ class _PlayListScreenState extends State<PlayListScreen> {
                           },
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20.0),
-                        child: SizedBox(
-                          height: 50.0,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF1ED760),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(25))),
-                            onPressed: () async {
-                              if (!_formKey.currentState!.validate()) return;
-                              if (selectedVideos.isEmpty) return;
 
-                              //create playlist object
-                              final playlist = VideoPlaylist(
-                                  name: nameController.text.trim(),
-                                  // videos: List.from(selectedVideos)
-                                  videos: List.from(selectedVideos));
+                      SizedBox(height: padding),
 
-                              // add playlist into the Hive
-                              final box = Hive.box<VideoPlaylist>(
-                                'playlistBox',
-                              );
+                      // comment: create button
+                      SizedBox(
+                        width: double.infinity,
+                        height: base * 0.13,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1ED760),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(base * 0.08),
+                            ),
+                          ),
+                          onPressed: () async {
+                            if (!_formKey.currentState!.validate()) return;
+                            if (selectedVideos.isEmpty) return;
 
-                              playlistNotifier.addPlaylist(playlist);
+                            // comment: create playlist object
+                            final playlist = VideoPlaylist(
+                              name: nameController.text.trim(),
+                              videos: List.from(selectedVideos),
+                            );
 
-                              // await box.add(playlist);
+                            // comment: save playlist
+                            playlistNotifier.addPlaylist(playlist);
 
-                              Navigator.of(context).pop();
+                            // comment: dispose controller
+                            // nameController.dispose();
 
-                              ScaffoldMessenger.of(context)
-                                  .showSnackBar(SnackBar(
-                                content: Text('PlayList Created'),
+                            Navigator.pop(context);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Playlist Created'),
                                 backgroundColor: Color(0xFF22C55E),
-                              ));
-                            },
-                            child: const Text(
-                              "Create",
-                              style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            "Create",
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: base * 0.045,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
+
+                      SizedBox(height: padding),
                     ],
                   ),
                 ),
@@ -200,104 +219,114 @@ class _PlayListScreenState extends State<PlayListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final media = MediaQuery.of(context);
+    final base = media.size.shortestSide;
+
+    // comment: responsive sizing
+    final iconSize = base * 0.06;
+    final fabSize = base * 0.14;
+    final fontSize = base * 0.05;
 
     return WillPopScope(
       onWillPop: () async {
-        AdsManager.handelBackPress();
+        AdsManager.handelBackPress(); // comment: show ad on back
         return true;
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF0F0F0F),
+
+        // comment: app bar
         appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                icon: Icon(
-                  Icons.arrow_back_ios_new,
-                  color: Colors.white,
-                  size: 20,
-                )),
-            title: const Text(
-              "Playlists",
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22),
-            )),
-        floatingActionButton: GestureDetector(
-          onTap: () {
-            _createPlaylist();
-          },
-          child: Container(
-            height: screenHeight * 0.08,
-            width: screenWidth * 0.160,
-            margin: const EdgeInsets.symmetric(vertical: 10.0),
-            decoration: BoxDecoration(
-              color: Color(0xFF161B22),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Icon(
-              Icons.add,
-              color: Color(0xFF22C55E),
-              size: 30,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new,
+                size: iconSize, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            "Playlists",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: fontSize,
             ),
           ),
         ),
 
-        // 🔥 THIS IS IMPORTANT
+        // comment: floating button
+        floatingActionButton: SizedBox(
+          height: fabSize,
+          width: fabSize,
+          child: FloatingActionButton(
+            backgroundColor: const Color(0xFF161B22),
+            onPressed: _createPlaylist,
+            child: Icon(Icons.add,
+                size: iconSize * 1.2,
+                color: const Color(0xFF22C55E)),
+          ),
+        ),
+
         body: Column(
           children: [
+            // comment: banner ad
             if (_bannerAd != null)
-              Container(
-                alignment: Alignment.center,
+              SizedBox(
                 height: _bannerAd!.size.height.toDouble(),
                 width: _bannerAd!.size.width.toDouble(),
                 child: AdWidget(ad: _bannerAd!),
               ),
+
             Expanded(
               child: ValueListenableBuilder(
                 valueListenable: playlistNotifier,
                 builder: (context, List<VideoPlaylist> playlists, _) {
                   if (playlists.isEmpty) {
-                    return _buildEmptyState();
+                    return _buildEmptyState(base);
                   }
 
                   return ListView.builder(
-                    padding: EdgeInsets.all(16),
+                    padding: EdgeInsets.all(base * 0.04),
                     itemCount: playlists.length,
                     itemBuilder: (context, index) {
                       final playlist = playlists[index];
 
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
+                        margin:
+                            EdgeInsets.only(bottom: base * 0.03),
                         decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12)),
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius:
+                              BorderRadius.circular(base * 0.035),
+                        ),
                         child: ListTile(
-                          leading: const Icon(
-                            Icons.playlist_play,
-                            color: Color(0xFF1ED760),
-                          ),
+                          leading: Icon(Icons.playlist_play,
+                              size: iconSize,
+                              color: const Color(0xFF1ED760)),
+
                           title: Text(
                             playlist.name,
                             style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600),
+                              color: Colors.white,
+                              fontSize: base * 0.045,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
+
                           subtitle: Text(
                             "${playlist.videos.length} videos",
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: base * 0.035,
+                            ),
                           ),
+
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => Playlistcreatedscreen(
+                                builder: (_) =>
+                                    Playlistcreatedscreen(
                                   playlist: playlist,
                                 ),
                               ),
@@ -316,42 +345,41 @@ class _PlayListScreenState extends State<PlayListScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  // comment: empty UI
+  Widget _buildEmptyState(double base) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: EdgeInsets.all(30),
-            decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
-            child: Icon(
-              Icons.library_add,
-              size: 60,
-              color: Colors.white.withOpacity(0.2),
+      child: Padding(
+        padding: EdgeInsets.all(base * 0.08),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.library_add,
+                size: base * 0.18,
+                color: Colors.white24),
+
+            SizedBox(height: base * 0.06),
+
+            Text(
+              'No Playlists created',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: base * 0.055,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(
-            height: 32,
-          ),
-          const Text(
-            'No Playlists created',
-            style: TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(
-            height: 12,
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              'Start Organizing your favorite track by creating your first playlist',
+
+            SizedBox(height: base * 0.02),
+
+            Text(
+              'Create your first playlist',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 14, height: 1.5),
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: base * 0.040,
+              ),
             ),
-          )
-        ],
+          ],
+        ),
       ),
     );
   }

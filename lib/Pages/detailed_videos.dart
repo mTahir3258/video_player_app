@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'dart:io';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:player_app/google_ads_files/ads_manager.dart';
 
+// ✅ Video Player Screen
 class DetailedVideos extends StatefulWidget {
-  final String videoPath;
-  final String videoList;
+  final String videoPath; // ✅ Path of video
+  final String videoList; // ✅ Video title
 
   const DetailedVideos({
     super.key,
@@ -21,33 +20,74 @@ class DetailedVideos extends StatefulWidget {
 }
 
 class _DetailedVideosState extends State<DetailedVideos> {
-  late final Player _player;
-  late final VideoController _videoController;
-  bool _isLocked = false;
-  BoxFit _currentFit = BoxFit.contain;
-  double _playbackSpeed = 1.0;
-  bool _isFullscreen = false;
-  bool _showControls = true;
 
+  late final Player _player;                 // ✅ MediaKit player
+  late final VideoController _videoController; // ✅ Video controller
+
+  bool _isLocked = false;       // ✅ Lock controls flag
+  bool _showControls = true;    // ✅ Show/hide controls
+  bool _isFullscreen = false;   // ✅ Fullscreen flag
+
+  BoxFit _currentFit = BoxFit.contain; // ✅ Video fit mode
+  double _playbackSpeed = 1.0;         // ✅ Speed value
+
+  // ✅ Speed options
   final List<double> _speedOptions = [
-    0.5,
-    0.75,
-    1.0,
-    1.25,
-    1.5,
-    1.75,
-    2.0,
-    2.25,
-    2.5,
-    2.75,
-    3.0,
+    0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0,
   ];
 
-  void _toggleControls() {
-    if (_isLocked) return;
-    setState(() => _showControls = !_showControls);
+  @override
+  void initState() {
+    super.initState();
+
+    // ✅ Create player
+    _player = Player();
+
+    // ✅ Attach controller
+    _videoController = VideoController(_player);
+
+    // ✅ Start playing video
+    _player.open(Media(widget.videoPath));
   }
 
+  @override
+  void dispose() {
+
+    // ✅ Restore UI when leaving screen
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+
+    // ✅ Dispose player (important for RAM)
+    _player.dispose();
+
+    super.dispose();
+  }
+
+  // ✅ Play / Pause
+  void _togglePlayPause() {
+    if (_player.state.playing) {
+      _player.pause();
+    } else {
+      _player.play();
+    }
+  }
+
+  // ✅ Seek forward 10 sec
+  void _seekForward() {
+    final pos = _player.state.position;
+    _player.seek(pos + const Duration(seconds: 10));
+  }
+
+  // ✅ Seek backward 10 sec
+  void _seekBackward() {
+    final pos = _player.state.position;
+    final newPos = pos - const Duration(seconds: 10);
+    _player.seek(newPos < Duration.zero ? Duration.zero : newPos);
+  }
+
+  // ✅ Toggle fullscreen
   void _toggleFullscreen() async {
     if (_isFullscreen) {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -61,34 +101,11 @@ class _DetailedVideosState extends State<DetailedVideos> {
         DeviceOrientation.landscapeRight,
       ]);
     }
+
     setState(() => _isFullscreen = !_isFullscreen);
   }
 
-  String _format(Duration d) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    return "${twoDigits(d.inMinutes)}:${twoDigits(d.inSeconds.remainder(60))}";
-  }
-
-  Duration _displayTime(Duration realTime) {
-    return Duration(
-      milliseconds: (realTime.inMilliseconds / _playbackSpeed).round(),
-    );
-  }
-
-  void _seekForward() {
-    final pos = _player.state.position;
-    _player.seek(pos + const Duration(seconds: 10));
-  }
-
-  void _seekBackward() {
-    final pos = _player.state.position;
-    _player.seek(
-      pos - const Duration(seconds: 10) < Duration.zero
-          ? Duration.zero
-          : pos - const Duration(seconds: 10),
-    );
-  }
-
+  // ✅ Change video fit
   void _toggleFit() {
     setState(() {
       _currentFit = _currentFit == BoxFit.contain
@@ -99,33 +116,13 @@ class _DetailedVideosState extends State<DetailedVideos> {
     });
   }
 
-  void _playVideo() {
-    _player.open(Media(widget.videoPath));
+  // ✅ Format duration
+  String _format(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return "${two(d.inMinutes)}:${two(d.inSeconds.remainder(60))}";
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _player = Player();
-    _videoController = VideoController(_player);
-    _playVideo();
-  }
-
-  @override
-  void dispose() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    _player.dispose();
-    super.dispose();
-  }
-
-  void _togglePlayPause() {
-    if (_player.state.playing)
-      _player.pause();
-    else
-      _player.play();
-  }
-
+  // ✅ Show speed selector
   void _showSpeedDialog() {
     showModalBottomSheet(
       context: context,
@@ -136,48 +133,34 @@ class _DetailedVideosState extends State<DetailedVideos> {
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Playback Speed',
-                style: TextStyle(color: Colors.white, fontSize: 18),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: _speedOptions.map((speed) {
-                  final isSelected = speed == _playbackSpeed;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _playbackSpeed = speed;
-                        _player.setRate(speed);
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Colors.blue
-                            : Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${speed}x',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: _speedOptions.map((speed) {
+              final selected = speed == _playbackSpeed;
+
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _playbackSpeed = speed;
+                    _player.setRate(speed);
+                  });
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected ? Colors.blue : Colors.white24,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    "${speed}x",
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         );
       },
@@ -186,28 +169,34 @@ class _DetailedVideosState extends State<DetailedVideos> {
 
   @override
   Widget build(BuildContext context) {
+
     final media = MediaQuery.of(context);
-    final base = media.size.shortestSide;
-    final iconSize = base * 0.08;
-    final padding = base * 0.025;
+    final base = media.size.shortestSide; // ✅ Responsive base
+
+    final iconSize = base * 0.075; // ✅ Icon scale
+    final padding = base * 0.03;   // ✅ Padding scale
+    final textSize = base * 0.045; // ✅ Text scale
 
     return WillPopScope(
       onWillPop: () async {
-        AdsManager.handelBackPress();
+        AdsManager.handelBackPress(); // ✅ Show ad on back
         return true;
       },
       child: Scaffold(
+        backgroundColor: Colors.black,
+
         body: SafeArea(
           child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
             onTap: () {
-              setState(() {
-                _showControls = !_showControls;
-              });
+              if (_isLocked) return;
+
+              // ✅ Show / hide controls
+              setState(() => _showControls = !_showControls);
             },
             child: Stack(
               children: [
-                // Video
+
+                // ✅ Video Player
                 Positioned.fill(
                   child: Video(
                     controller: _videoController,
@@ -216,157 +205,125 @@ class _DetailedVideosState extends State<DetailedVideos> {
                   ),
                 ),
 
-                // UI OVERLAY (shown only when _showControls)
+                // ✅ Controls Overlay
                 if (_showControls && !_isLocked) ...[
-             // Top App Bar + Speed/Rotate
+
+                  // 🔝 Top bar
                   Align(
                     alignment: Alignment.topCenter,
                     child: Container(
                       color: Colors.black54,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: padding,
-                        vertical: padding / 2,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // App Bar
-                          Row(
-                            children: [
-                              IconButton(
-                                iconSize: iconSize,
-                                icon: const Icon(Icons.arrow_back,
-                                    color: Colors.white),
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                              Expanded(
-                                child: Text(
-                                  widget.videoList,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: base * 0.045,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // Speed + Fullscreen (right aligned)
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        top: media.padding.top +
-                            (base * 0.2), // responsive top padding
-                        left: base * 0.07,
-                      ),
+                      padding: EdgeInsets.all(padding),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          GestureDetector(
-                            onTap: _showSpeedDialog,
-                            child: Icon(
-                              Icons.speed,
-                              color: Colors.white,
-                              size: iconSize,
+
+                          // Back button
+                          IconButton(
+                            icon: Icon(Icons.arrow_back,
+                                color: Colors.white, size: iconSize),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+
+                          // Video title
+                          Expanded(
+                            child: Text(
+                              widget.videoList,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: textSize,
+                              ),
                             ),
                           ),
-                          SizedBox(width: padding),
-                          GestureDetector(
-                            onTap: _toggleFullscreen,
-                            child: Icon(
-                              _isFullscreen
-                                  ? Icons.screen_rotation
-                                  : Icons.screen_rotation,
-                              color: Colors.white,
-                              size: iconSize,
-                            ),
+
+                          // Speed button
+                          IconButton(
+                            icon: Icon(Icons.speed,
+                                color: Colors.white, size: iconSize),
+                            onPressed: _showSpeedDialog,
                           ),
                         ],
                       ),
                     ),
                   ),
 
-                  // Bottom Controls
+                  // 🔻 Bottom controls
                   Align(
                     alignment: Alignment.bottomCenter,
                     child: Padding(
-                      padding: EdgeInsets.only(bottom: padding),
+                      padding: EdgeInsets.all(padding),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Seek + Time
+
+                          // ✅ Progress bar
                           StreamBuilder<Duration>(
                             stream: _player.stream.position,
                             builder: (context, snapshot) {
-                              final realPos = snapshot.data ?? Duration.zero;
-                              final realDur = _player.state.duration;
+
+                              final pos = snapshot.data ?? Duration.zero;
+                              final dur = _player.state.duration;
 
                               return Column(
                                 children: [
+
                                   Slider(
                                     min: 0,
-                                    max: realDur.inMilliseconds.toDouble(),
-                                    value: realPos.inMilliseconds
-                                        .clamp(0, realDur.inMilliseconds)
+                                    max: dur.inMilliseconds.toDouble(),
+                                    value: pos.inMilliseconds
+                                        .clamp(0, dur.inMilliseconds)
                                         .toDouble(),
                                     onChanged: (v) => _player.seek(
-                                        Duration(milliseconds: v.toInt())),
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: padding),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          _format(_displayTime(realPos)),
-                                          style: const TextStyle(
-                                              color: Colors.white),
-                                        ),
-                                        Text(
-                                          _format(_displayTime(realDur)),
-                                          style: const TextStyle(
-                                              color: Colors.white),
-                                        ),
-                                      ],
+                                      Duration(milliseconds: v.toInt()),
                                     ),
+                                  ),
+
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(_format(pos),
+                                          style: const TextStyle(
+                                              color: Colors.white)),
+                                      Text(_format(dur),
+                                          style: const TextStyle(
+                                              color: Colors.white)),
+                                    ],
                                   ),
                                 ],
                               );
                             },
                           ),
 
-                          SizedBox(height: padding / 2),
+                          SizedBox(height: padding),
 
-                          // Play / Other Controls
+                          // ✅ Buttons row
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceEvenly,
                             children: [
+
                               _control(
-                                  icon: _isLocked ? Icons.lock : Icons.lock_open,
-                                  size: iconSize,
-                                  
-                                  onTap: () {
-                                    setState(() {
-                                      _isLocked = !_isLocked;
-                                    });
-                                  }),
+                                icon: _isLocked
+                                    ? Icons.lock
+                                    : Icons.lock_open,
+                                size: iconSize,
+                                onTap: () {
+                                  setState(() => _isLocked = !_isLocked);
+                                },
+                              ),
+
                               _control(
-                                  icon: Icons.arrow_back,
+                                  icon: Icons.replay_10,
                                   size: iconSize,
                                   onTap: _seekBackward),
+
                               StreamBuilder<bool>(
                                 stream: _player.stream.playing,
-                                builder: (ctx, snap) {
+                                builder: (context, snapshot) {
                                   return _control(
-                                    icon: snap.data == true
+                                    icon: snapshot.data == true
                                         ? Icons.pause
                                         : Icons.play_arrow,
                                     size: iconSize,
@@ -374,56 +331,45 @@ class _DetailedVideosState extends State<DetailedVideos> {
                                   );
                                 },
                               ),
+
                               _control(
-                                  icon: Icons.arrow_forward,
+                                  icon: Icons.forward_10,
                                   size: iconSize,
                                   onTap: _seekForward),
+
                               _control(
                                   icon: Icons.aspect_ratio,
                                   size: iconSize,
                                   onTap: _toggleFit),
+
                               _control(
-                                icon: _isFullscreen
-                                    ? Icons.fullscreen
-                                    : Icons.fullscreen,
-                                size: iconSize,
-                                onTap: _toggleFullscreen,
-                              ),
+                                  icon: Icons.fullscreen,
+                                  size: iconSize,
+                                  onTap: _toggleFullscreen),
                             ],
                           ),
                         ],
                       ),
                     ),
                   ),
-                ], // end if _showControls
-             
-                  if (_isLocked)
-  Positioned(
-    left: 15.0,
-    top: 18.0,
-    child: GestureDetector(
-      onTap: () {
-        setState(() {
-          _isLocked = false;   // 👈 unlock
-          _showControls = true;
-        });
-      },
-      child: Container(
-        padding: EdgeInsets.all(iconSize * 0.35),
-        decoration: BoxDecoration(
-          color: Colors.black54,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          Icons.lock,   // 🔒 unlock icon
-          color: Colors.white,
-          size: iconSize * 1.2,
-        ),
-      ),
-    ),
-  ),
+                ],
 
-     
+                // ✅ Lock screen button (when locked)
+                if (_isLocked)
+                  Positioned(
+                    top: padding,
+                    left: padding,
+                    child: _control(
+                      icon: Icons.lock,
+                      size: iconSize,
+                      onTap: () {
+                        setState(() {
+                          _isLocked = false;
+                          _showControls = true;
+                        });
+                      },
+                    ),
+                  ),
               ],
             ),
           ),
@@ -432,6 +378,7 @@ class _DetailedVideosState extends State<DetailedVideos> {
     );
   }
 
+  // ✅ Reusable control button
   Widget _control({
     required IconData icon,
     required double size,
@@ -440,8 +387,8 @@ class _DetailedVideosState extends State<DetailedVideos> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(size * 0.2),
-        decoration: BoxDecoration(
+        padding: EdgeInsets.all(size * 0.25),
+        decoration: const BoxDecoration(
           color: Colors.black54,
           shape: BoxShape.circle,
         ),

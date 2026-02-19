@@ -1,11 +1,14 @@
+// comment: import Flutter UI
 import 'package:flutter/material.dart';
+
+// comment: import all screens
 import 'package:player_app/Pages/bottom_nav_screens/download_screen.dart';
 import 'package:player_app/Pages/bottom_nav_screens/fatafat_screen.dart';
 import 'package:player_app/Pages/bottom_nav_screens/serch_screen.dart';
 import 'package:player_app/Pages/bottom_nav_screens/videos_screen.dart';
 import 'package:player_app/Pages/videos_Folder.dart';
 
-// Main widget for bottom navigation home screen
+// comment: main bottom navigation widget
 class BottomNavHome extends StatefulWidget {
   const BottomNavHome({super.key});
 
@@ -13,12 +16,13 @@ class BottomNavHome extends StatefulWidget {
   State<BottomNavHome> createState() => _BottomNavHomeState();
 }
 
-// State class for BottomNavHome
+// comment: state class
 class _BottomNavHomeState extends State<BottomNavHome> {
-  // Stores the currently selected bottom navigation index
+
+  // comment: store selected tab index
   int _currentIndex = 0;
 
-  // List of screens shown when bottom navigation item is selected
+  // comment: list of screens
   final List<Widget> _screenList = [
     VideosFolder(),
     VideosScreen(),
@@ -29,78 +33,109 @@ class _BottomNavHomeState extends State<BottomNavHome> {
 
   @override
   Widget build(BuildContext context) {
-    // Get screen size information
+
+    // comment: get screen info
     final media = MediaQuery.of(context);
-    // Get the shortest side of the screen
     final shortestSide = media.size.shortestSide;
-    // Set icon size based on screen size
-    final iconSize = shortestSide * 0.06;
+    final width = media.size.width;
+
+    // comment: responsive sizes
+    final navHeight = shortestSide * 0.12;
+    final iconSize = shortestSide * 0.065;
+    final paddingHorizontal = width * 0.05;
 
     return Scaffold(
-        // Show the selected screen based on current index
-        backgroundColor: Color(0xFF0D1117),
-        body: _screenList[_currentIndex],
-        // Bottom navigation bar
-        bottomNavigationBar: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 25),
-          child: Container(
-            height: 80.0,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(40.0),
-              color: Color(0xFF0D1117).withOpacity(0.9),
-              border: Border.all(width: 1.0, color: Colors.white12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  navItem(Icons.folder, 0),
-                  navItem(Icons.play_circle_outline, 1),
-                  navItem(Icons.smartphone, 2),
-                  navItem(Icons.search, 3),
-                  navItem(Icons.cloud_download_outlined, 4),
-                ],
-              ),
-            ),
+      backgroundColor: const Color(0xFF0D1117),
+
+      // comment: show selected screen
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screenList,
+      ),
+
+      // comment: custom bottom navigation bar
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.fromLTRB(
+          paddingHorizontal,
+          0,
+          paddingHorizontal,
+          shortestSide * 0.03,
+        ),
+        child: Container(
+          height: navHeight,
+
+          // comment: nav bar design
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(navHeight),
+            color: const Color(0xFF0D1117).withOpacity(0.9),
+            border: Border.all(width: 1.0, color: Colors.white12),
           ),
-        ));
+
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              navItem(Icons.folder, 0, iconSize),
+              navItem(Icons.play_circle_outline, 1, iconSize),
+              navItem(Icons.smartphone, 2, iconSize),
+              navItem(Icons.search, 3, iconSize),
+              navItem(Icons.cloud_download_outlined, 4, iconSize),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
-  Widget navItem(IconData icon, int index) {
-    bool isActive = _currentIndex == index;
+  // comment: bottom nav item widget
+  Widget navItem(IconData icon, int index, double iconSize) {
+
+    // comment: check active tab
+    final bool isActive = _currentIndex == index;
 
     return GestureDetector(
       onTap: () {
+        // comment: change tab
         setState(() {
           _currentIndex = index;
         });
       },
+
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(12.0),
+        duration: const Duration(milliseconds: 250),
+
+        // comment: responsive padding
+        padding: EdgeInsets.all(iconSize * 0.35),
+
+        // comment: active glow effect
         decoration: BoxDecoration(
-          //Active Item with green glow
-          color: isActive ? const Color(0xFF22C55E):Colors.transparent,
+          color: isActive
+              ? const Color(0xFF22C55E)
+              : Colors.transparent,
           shape: BoxShape.circle,
           boxShadow: isActive
-           ?
-           [
-            BoxShadow(
-              color: const Color(0xFF22C55E).withOpacity(0.4),
-              blurRadius: 15,
-              spreadRadius: 2
-            ),
-
-          ]
-          :[],
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF22C55E).withOpacity(0.4),
+                    blurRadius: iconSize * 0.6,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : [],
         ),
+
+        // comment: icon
         child: Icon(
           icon,
-          size: 28,
+          size: iconSize,
           color: isActive ? Colors.white : Colors.white54,
-          ),
-        )
+        ),
+      ),
     );
+  }
+
+  @override
+  void dispose() {
+    // comment: nothing heavy to dispose here
+    super.dispose();
   }
 }
